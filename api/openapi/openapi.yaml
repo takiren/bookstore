@@ -1,0 +1,253 @@
+openapi: 3.1.0
+info:
+  title: Bookstore API
+  version: 0.1.0
+  description: 個人蔵書管理API
+
+servers:
+  - url: http://localhost:8080
+    description: ローカル開発
+
+paths:
+  /books:
+    get:
+      summary: 蔵書一覧取得
+      operationId: listBooks
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+            minimum: 1
+            maximum: 100
+        - name: cursor
+          in: query
+          description: カーソル（前回レスポンスの next_cursor を渡す）
+          schema:
+            type: string
+      responses:
+        "200":
+          description: 蔵書一覧
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BookListResponse"
+
+    post:
+      summary: 蔵書の一括登録
+      operationId: createBooks
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateBooksRequest"
+      responses:
+        "201":
+          description: 登録成功
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Book"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
+  # NOTE: Echo では /books/delete を /books/{id} より先に登録すること（静的パス優先）
+  /books/delete:
+    post:
+      summary: 蔵書の一括削除
+      operationId: deleteBooks
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DeleteBooksRequest"
+      responses:
+        "204":
+          description: 削除成功
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /books/{id}:
+    get:
+      summary: 蔵書詳細取得
+      operationId: getBook
+      parameters:
+        - $ref: "#/components/parameters/BookId"
+      responses:
+        "200":
+          description: 蔵書詳細
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Book"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+    patch:
+      summary: 蔵書の更新
+      operationId: updateBook
+      parameters:
+        - $ref: "#/components/parameters/BookId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateBookRequest"
+      responses:
+        "200":
+          description: 更新成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Book"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+components:
+  parameters:
+    BookId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+
+  schemas:
+    Book:
+      type: object
+      required:
+        - id
+        - isbn
+        - title
+        - status
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: string
+          format: uuid
+        isbn:
+          type: string
+          example: "9784873119038"
+        title:
+          type: string
+        author:
+          type: string
+        publisher:
+          type: string
+        published_date:
+          type: string
+          format: date
+        thumbnail_url:
+          type: string
+          format: uri
+        status:
+          $ref: "#/components/schemas/BookStatus"
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    BookStatus:
+      type: string
+      enum:
+        - unread    # 積読
+        - reading   # 読書中
+        - read      # 読了
+        - lent      # 貸し出し中
+
+    BookListResponse:
+      type: object
+      required:
+        - books
+        - next_cursor
+      properties:
+        books:
+          type: array
+          items:
+            $ref: "#/components/schemas/Book"
+        next_cursor:
+          type: string
+          nullable: true
+          description: 次ページのカーソル。null の場合は最終ページ
+
+    CreateBookInput:
+      type: object
+      required:
+        - isbn
+      properties:
+        isbn:
+          type: string
+          example: "9784873119038"
+        status:
+          $ref: "#/components/schemas/BookStatus"
+
+    CreateBooksRequest:
+      type: object
+      required:
+        - books
+      properties:
+        books:
+          type: array
+          items:
+            $ref: "#/components/schemas/CreateBookInput"
+          minItems: 1
+          maxItems: 100
+
+    UpdateBookRequest:
+      type: object
+      properties:
+        status:
+          $ref: "#/components/schemas/BookStatus"
+
+    DeleteBooksRequest:
+      type: object
+      required:
+        - ids
+      properties:
+        ids:
+          type: array
+          items:
+            type: string
+            format: uuid
+          minItems: 1
+          maxItems: 100
+
+    Error:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+
+  responses:
+    BadRequest:
+      description: リクエストが不正
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+
+    NotFound:
+      description: リソースが見つかりません
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
