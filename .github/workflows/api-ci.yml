@@ -1,0 +1,128 @@
+name: API CI
+
+on:
+  push:
+    paths:
+      - "api/**"
+      - ".github/workflows/api-ci.yml"
+  pull_request:
+    paths:
+      - "api/**"
+      - ".github/workflows/api-ci.yml"
+
+jobs:
+  codegen-check:
+    name: oapi-codegen drift check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: api/go.mod
+          cache-dependency-path: api/go.sum
+      - name: Install oapi-codegen
+        run: go install github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen@latest
+        working-directory: api
+      - name: Generate
+        run: oapi-codegen -config oapi-codegen.yaml openapi/openapi.yaml
+        working-directory: api
+      - name: Check drift
+        run: |
+          if ! git diff --exit-code api/gen/; then
+            echo "::error::Generated code is out of sync. Run oapi-codegen locally and commit the result."
+            exit 1
+          fi
+
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    needs: codegen-check
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: api/go.mod
+          cache-dependency-path: api/go.sum
+      - name: go vet
+        run: go vet ./...
+        working-directory: api
+      - uses: golangci/golangci-lint-action@v6
+        with:
+          working-directory: api
+
+  vulncheck:
+    name: Vulnerability check
+    runs-on: ubuntu-latest
+    needs: codegen-check
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: api/go.mod
+          cache-dependency-path: api/go.sum
+      - uses: golang/govulncheck-action@v1
+        with:
+          work-dir: api
+
+  unit-test:
+    name: Unit tests
+    runs-on: ubuntu-latest
+    needs: [lint, vulncheck]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: api/go.mod
+          cache-dependency-path: api/go.sum
+      - name: Run unit tests
+        run: go test -tags=unit -race -count=1 ./...
+        working-directory: api
+
+  integration-test:
+    name: Integration tests
+    runs-on: ubuntu-latest
+    needs: unit-test
+    if: github.event_name == 'pull_request'
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: bookstore
+          POSTGRES_PASSWORD: bookstore
+          POSTGRES_DB: bookstore_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: api/go.mod
+          cache-dependency-path: api/go.sum
+      - name: Run integration tests
+        env:
+          DATABASE_URL: postgres://bookstore:bookstore@localhost:5432/bookstore_test?sslmode=disable
+        run: go test -tags=unit,integration -race -count=1 ./...
+        working-directory: api
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    needs: [unit-test, integration-test]
+    if: |
+      always() &&
+      needs.unit-test.result == 'success' &&
+      (needs.integration-test.result == 'success' || needs.integration-test.result == 'skipped')
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: api/go.mod
+          cache-dependency-path: api/go.sum
+      - name: Build
+        run: CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /dev/null ./cmd/main.go
+        working-directory: api
