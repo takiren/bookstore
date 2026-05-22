@@ -1,0 +1,7 @@
+package: api
+generate:
+  echo-server: true
+  models: true
+  strict-server: true
+input-spec: ./openapi/openapi.yaml
+output: ./gen/api/api.gen.go
