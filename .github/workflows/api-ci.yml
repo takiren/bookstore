@@ -20,11 +20,8 @@ jobs:
         with:
           go-version-file: api/go.mod
           cache-dependency-path: api/go.sum
-      - name: Install oapi-codegen
-        run: go install github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen@latest
-        working-directory: api
       - name: Generate
-        run: oapi-codegen -config oapi-codegen.yaml openapi/openapi.yaml
+        run: go tool oapi-codegen -config oapi-codegen.yaml openapi/openapi.yaml
         working-directory: api
       - name: Check drift
         run: |
