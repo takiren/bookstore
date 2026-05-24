@@ -4,6 +4,8 @@
 export function isValidIsbn13(isbn: string): boolean {
   const digits = isbn.replace(/-/g, "");
   if (!/^\d{13}$/.test(digits)) return false;
-  const sum = digits.split("").reduce((acc, d, i) => acc + Number(d) * (i % 2 === 0 ? 1 : 3), 0);
+  const sum = digits
+    .split("")
+    .reduce((acc, d, i) => acc + Number(d) * (i % 2 === 0 ? 1 : 3), 0);
   return sum % 10 === 0;
 }
