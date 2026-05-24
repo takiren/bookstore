@@ -15,11 +15,15 @@ jobs:
     name: CI
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@v6
+      - uses: actions/setup-go@v6
         with:
+          go-version: '1.26.2'
           go-version-file: api/go.mod
           cache-dependency-path: api/go.sum
+          cache: true
+          cache-dependency-path: 'api/go.sum'
+          architecture: 'x64'
 
       - name: oapi-codegen drift check
         working-directory: api
@@ -34,7 +38,8 @@ jobs:
         run: go vet ./...
         working-directory: api
 
-      - uses: golangci/golangci-lint-action@v6
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v9
         with:
           working-directory: api
 
