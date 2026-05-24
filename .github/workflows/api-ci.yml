@@ -1,0 +1,117 @@
+name: API CI
+
+on:
+  push:
+    paths:
+      - "api/**"
+      - ".github/workflows/api-ci.yml"
+  pull_request:
+    paths:
+      - "api/**"
+      - ".github/workflows/api-ci.yml"
+
+jobs:
+  ci:
+    name: CI
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-go@v6
+        with:
+          go-version: '1.26.2'
+          go-version-file: api/go.mod
+          cache-dependency-path: api/go.sum
+          cache: true
+          architecture: 'x64'
+
+      - name: oapi-codegen drift check
+        working-directory: api
+        run: |
+          go tool oapi-codegen -config oapi-codegen.yaml openapi/openapi.yaml
+          if ! git diff --exit-code gen/; then
+            echo "::error::Generated code is out of sync. Run oapi-codegen locally and commit the result."
+            exit 1
+          fi
+
+      - name: go vet
+        run: go vet ./...
+        working-directory: api
+
+      - name: Unit tests
+        run: go test -tags=unit -race -count=1 ./...
+        working-directory: api
+
+  golangci-lint:
+    name: golangci-lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@v6
+        with:
+          go-version: '1.26.2'
+          go-version-file: api/go.mod
+          cache-dependency-path: api/go.sum
+          cache: true
+          architecture: 'x64'
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v9
+        with:
+          working-directory: api
+
+  govulncheck:
+    name: Vulnerability check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - name: go vulnerability check
+        uses: golang/govulncheck-action@v1
+        with:
+          go-version-input: 1.26.2
+          work-dir: api
+          go-package: ./...
+          cache-dependency-path: 'api/go.sum'
+
+  docker-build:
+    name: Docker build
+    runs-on: ubuntu-latest
+    needs: ci
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v6
+      - name: Build container image
+        run: docker build -t bookstore-api:${{ github.sha }} api/
+
+  integration-test:
+    name: Integration tests
+    runs-on: ubuntu-latest
+    needs: ci
+    if: github.event_name == 'pull_request'
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: bookstore
+          POSTGRES_PASSWORD: bookstore
+          POSTGRES_DB: bookstore_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: api/go.mod
+          cache-dependency-path: api/go.sum
+      - name: Integration tests
+        env:
+          DATABASE_URL: postgres://bookstore:bookstore@localhost:5432/bookstore_test?sslmode=disable
+        run: go test -tags=unit,integration -race -count=1 ./...
+        working-directory: api
