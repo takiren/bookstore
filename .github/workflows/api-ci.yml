@@ -22,7 +22,6 @@ jobs:
           go-version-file: api/go.mod
           cache-dependency-path: api/go.sum
           cache: true
-          cache-dependency-path: 'api/go.sum'
           architecture: 'x64'
 
       - name: oapi-codegen drift check
