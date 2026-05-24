@@ -10,8 +10,8 @@ import (
 
 	"github.com/google/uuid"
 
-	"bookstore/api/domain"
-	"bookstore/api/repository"
+	"bookstore/api/book/domain"
+	"bookstore/api/book/repository"
 )
 
 // ErrInvalidCursor はカーソルのデコードに失敗した場合のエラー。

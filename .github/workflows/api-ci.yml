@@ -33,6 +33,18 @@ jobs:
             exit 1
           fi
 
+      - name: Install sqlc
+        run: go install github.com/sqlc-dev/sqlc/cmd/sqlc@v1.31.1
+
+      - name: sqlc drift check
+        working-directory: api
+        run: |
+          sqlc generate
+          if ! git diff --exit-code db/; then
+            echo "::error::sqlc generated code is out of sync. Run 'sqlc generate' locally and commit the result."
+            exit 1
+          fi
+
       - name: go vet
         run: go vet ./...
         working-directory: api
@@ -92,7 +104,7 @@ jobs:
     if: github.event_name == 'pull_request'
     services:
       postgres:
-        image: postgres:17
+        image: postgres:18
         env:
           POSTGRES_USER: bookstore
           POSTGRES_PASSWORD: bookstore
@@ -105,11 +117,17 @@ jobs:
           --health-timeout 5s
           --health-retries 5
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@v6
+      - uses: actions/setup-go@v6
         with:
+          go-version: '1.26.2'
           go-version-file: api/go.mod
           cache-dependency-path: api/go.sum
+          cache: true
+      - name: Run migrations
+        env:
+          PGPASSWORD: bookstore
+        run: psql -h localhost -U bookstore -d bookstore_test -f api/db/migration/001_init.sql
       - name: Integration tests
         env:
           DATABASE_URL: postgres://bookstore:bookstore@localhost:5432/bookstore_test?sslmode=disable

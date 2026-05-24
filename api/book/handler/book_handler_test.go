@@ -13,10 +13,10 @@ import (
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
 
+	"bookstore/api/book/domain"
+	"bookstore/api/book/handler"
+	"bookstore/api/book/usecase"
 	api "bookstore/api/gen/api"
-	"bookstore/api/domain"
-	"bookstore/api/handler"
-	"bookstore/api/usecase"
 )
 
 type mockListBooksUseCase struct {
@@ -31,8 +31,7 @@ func (m *mockListBooksUseCase) Execute(_ context.Context, input usecase.ListBook
 }
 
 func setupEcho() *echo.Echo {
-	e := echo.New()
-	return e
+	return echo.New()
 }
 
 func TestBookHandler_ListBooks_EmptyResult(t *testing.T) {

@@ -9,8 +9,8 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	"bookstore/api/book/domain"
 	"bookstore/api/db"
-	"bookstore/api/domain"
 )
 
 // PageCursor はカーソルページネーションの位置を示す。

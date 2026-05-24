@@ -12,11 +12,11 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 
-	api "bookstore/api/gen/api"
+	"bookstore/api/book/handler"
+	"bookstore/api/book/repository"
+	"bookstore/api/book/usecase"
 	"bookstore/api/config"
-	"bookstore/api/handler"
-	"bookstore/api/repository"
-	"bookstore/api/usecase"
+	api "bookstore/api/gen/api"
 )
 
 func main() {

@@ -3,7 +3,7 @@ package domain_test
 import (
 	"testing"
 
-	"bookstore/api/domain"
+	"bookstore/api/book/domain"
 )
 
 func TestBookStatus_Valid(t *testing.T) {

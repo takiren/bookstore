@@ -10,12 +10,11 @@ import (
 
 	"github.com/google/uuid"
 
-	"bookstore/api/domain"
-	"bookstore/api/repository"
-	"bookstore/api/usecase"
+	"bookstore/api/book/domain"
+	"bookstore/api/book/repository"
+	"bookstore/api/book/usecase"
 )
 
-// mockBookRepository はテスト用のリポジトリモック。
 type mockBookRepository struct {
 	books            []*domain.Book
 	err              error

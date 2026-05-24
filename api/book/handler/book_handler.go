@@ -8,9 +8,9 @@ import (
 	"github.com/labstack/echo/v4"
 	openapi_types "github.com/oapi-codegen/runtime/types"
 
+	"bookstore/api/book/domain"
+	"bookstore/api/book/usecase"
 	api "bookstore/api/gen/api"
-	"bookstore/api/domain"
-	"bookstore/api/usecase"
 )
 
 // listBooksExecutor は ListBooksUseCase を抽象化するインターフェース（テスト用）。

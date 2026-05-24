@@ -11,9 +11,9 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	"bookstore/api/book/domain"
+	"bookstore/api/book/repository"
 	"bookstore/api/config"
-	"bookstore/api/domain"
-	"bookstore/api/repository"
 )
 
 func newTestPool(t *testing.T) *pgxpool.Pool {

@@ -12,6 +12,8 @@ type Config struct {
 }
 
 type DBConfig struct {
+	// URL が設定されている場合は他のフィールドより優先して使用する（CI の DATABASE_URL など）。
+	URL      string
 	Host     string
 	Port     int
 	User     string
@@ -21,7 +23,11 @@ type DBConfig struct {
 }
 
 // DSN returns a pgx-compatible connection string.
+// DATABASE_URL が設定されている場合はその値をそのまま返す。
 func (c DBConfig) DSN() string {
+	if c.URL != "" {
+		return c.URL
+	}
 	return fmt.Sprintf(
 		"host=%s port=%d user=%s password=%s dbname=%s sslmode=%s",
 		c.Host, c.Port, c.User, c.Password, c.DBName, c.SSLMode,
@@ -35,6 +41,7 @@ type ServerConfig struct {
 func Load() *Config {
 	return &Config{
 		DB: DBConfig{
+			URL:      getEnv("DATABASE_URL", ""),
 			Host:     getEnv("DB_HOST", "localhost"),
 			Port:     getEnvInt("DB_PORT", 5432),
 			User:     getEnv("DB_USER", "bookstore"),
