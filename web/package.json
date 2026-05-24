@@ -16,6 +16,11 @@
     "react": "19.2.4",
     "react-dom": "19.2.4"
   },
+  "pnpm": {
+    "overrides": {
+      "postcss": ">=8.5.10"
+    }
+  },
   "devDependencies": {
     "@biomejs/biome": "2.2.0",
     "@tailwindcss/postcss": "^4",
